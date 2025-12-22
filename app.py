@@ -223,29 +223,34 @@ def login():
 
     return render_template("login.html")
 
-
 @app.route("/student", methods=["GET", "POST"])
 def student():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    user = User.query.get(session["user_id"])
+    user = db.session.get(User, session["user_id"])
 
-    # ---------- OTP VERIFY ----------
+    # ================= OTP VERIFY =================
     if request.method == "POST" and session.get("otp_phase"):
         if datetime.now(timezone.utc) > session.get("otp_expiry"):
-            flash("OTP expired", "danger")
-            session.clear()
+            flash("OTP expired. Please request again.", "danger")
+            session.pop("otp_phase", None)
+            session.pop("otp", None)
+            session.pop("pending", None)
+            session.pop("otp_expiry", None)
             return redirect(url_for("student"))
 
         if request.form.get("otp") != str(session.get("otp")):
             flash("Invalid OTP", "danger")
             return redirect(url_for("student"))
 
+        # Save gate pass
         req = GatePassRequest(
             student_id=user.id,
             student_name=user.name,
-            **session["pending"]
+            reason=session["pending"]["reason"],
+            out_date=session["pending"]["out_date"],
+            out_time=session["pending"]["out_time"]
         )
         db.session.add(req)
         db.session.commit()
@@ -255,12 +260,13 @@ def student():
         session.pop("pending")
         session.pop("otp_expiry")
 
-        flash("Gate pass submitted successfully", "success")
+        flash("Gate pass submitted successfully!", "success")
         return redirect(url_for("student"))
 
-    # ---------- SEND OTP ----------
+    # ================= SEND OTP =================
     if request.method == "POST":
         otp = random.randint(100000, 999999)
+
         session["otp"] = otp
         session["otp_phase"] = True
         session["otp_expiry"] = datetime.now(timezone.utc) + timedelta(minutes=5)
@@ -271,31 +277,17 @@ def student():
         }
 
         send_sms(user.parents_phone, f"OTP for gate pass is {otp}")
-        flash("OTP sent to parent's mobile number", "info")
+        flash("OTP sent to parent's registered mobile number", "info")
         return redirect(url_for("student"))
 
+    # ================= FETCH REQUESTS =================
     requests = GatePassRequest.query.filter_by(student_id=user.id).all()
-    now = datetime.now()
-    data = []
-
-    for r in requests:
-        qr = None
-        if (
-            r.status == "Approved"
-            and r.qr_token
-            and not r.qr_used
-            and r.qr_expires_at
-            and r.qr_expires_at > now
-        ):
-            url = url_for("verify_qr", token=r.qr_token, _external=True)
-            qr = generate_qr_code(url)
-        data.append({"r": r, "qr": qr})
 
     return render_template(
         "student.html",
-        data=data,
-        otp=session.get("otp_phase"),
-        student_name=user.name
+        student_name=user.name,
+        requests_list=requests,
+        otp_required=session.get("otp_phase", False)
     )
 
 
@@ -361,6 +353,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
