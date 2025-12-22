@@ -281,15 +281,34 @@ def student():
         return redirect(url_for("student"))
 
     # ================= FETCH REQUESTS =================
+    now = datetime.now(timezone.utc)
     requests = GatePassRequest.query.filter_by(student_id=user.id).all()
+
+    requests_with_qr = []
+    for r in requests:
+        qr_img = None
+
+        if (
+            r.status == "Approved"
+            and r.qr_token
+            and not r.qr_used
+            and r.qr_expires_at
+            and r.qr_expires_at > now
+        ):
+            verify_url = url_for("verify_qr", token=r.qr_token, _external=True)
+            qr_img = generate_qr_code(verify_url)
+
+        requests_with_qr.append({
+            "request": r,
+            "qr": qr_img
+        })
 
     return render_template(
         "student.html",
         student_name=user.name,
-        requests_list=requests,
+        requests_list=requests_with_qr,
         otp_required=session.get("otp_phase", False)
     )
-
 @app.route("/hod")
 def hod_dashboard():
     if session.get("role") != "hod":
@@ -360,6 +379,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
