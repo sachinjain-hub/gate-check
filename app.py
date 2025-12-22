@@ -299,6 +299,7 @@ def hod_dashboard():
     requests = GatePassRequest.query.order_by(
         GatePassRequest.created_at.desc()
     ).all()
+
     return render_template("hod.html", requests=requests)
 
 
@@ -353,6 +354,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
