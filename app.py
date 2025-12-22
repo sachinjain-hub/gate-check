@@ -83,7 +83,7 @@ class GatePassRequest(db.Model):
     out_date = db.Column(db.String(20))
     out_time = db.Column(db.String(20))
     status = db.Column(db.String(20), default="Pending")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.now)
 
     qr_token = db.Column(db.String(100), unique=True)
     qr_expires_at = db.Column(db.DateTime)
@@ -263,7 +263,7 @@ def student():
         otp = random.randint(100000, 999999)
         session["otp"] = otp
         session["otp_phase"] = True
-        session["otp_expiry"] = datetime.utcnow() + timedelta(minutes=5)
+        session["otp_expiry"] = datetime.now() + timedelta(minutes=5)
         session["pending"] = {
             "reason": request.form["reason"],
             "out_date": request.form["out_date"],
@@ -275,7 +275,7 @@ def student():
         return redirect(url_for("student"))
 
     requests = GatePassRequest.query.filter_by(student_id=user.id).all()
-    now = datetime.utcnow()
+    now = datetime.now()
     data = []
 
     for r in requests:
@@ -361,5 +361,6 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
