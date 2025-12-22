@@ -282,9 +282,7 @@ def student():
 
     # ================= FETCH REQUESTS =================
     now = datetime.now(timezone.utc)
-    requests = GatePassRequest.query.filter_by(student_id=user.id).all()
 
-    requests_with_qr = []
     for r in requests:
         qr_img = None
 
@@ -294,9 +292,10 @@ def student():
             and not r.qr_used
             and r.qr_expires_at
             and r.qr_expires_at > now
-        ):
+            ):
             verify_url = url_for("verify_qr", token=r.qr_token, _external=True)
             qr_img = generate_qr_code(verify_url)
+
 
         requests_with_qr.append({
             "request": r,
@@ -379,6 +378,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
