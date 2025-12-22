@@ -302,28 +302,32 @@ def hod_dashboard():
     return render_template("hod.html", requests=requests)
 
 
+from models import User
+
 @app.route("/hod/update/<int:id>", methods=["POST"])
 def update_request(id):
     req = GatePassRequest.query.get_or_404(id)
     action = request.form.get("action")
 
+    student = User.query.get(req.student_id)
+
     if action == "Approved":
         req.status = "Approved"
         req.qr_token = uuid4().hex
-        req.qr_expires_at = datetime.now() + timedelta(minutes=20)
+        req.qr_expires_at = datetime.now(timezone.utc) + timedelta(minutes=20)
         req.qr_used = False
 
-        send_sms(
-            req.student.parents_phone,
-            f"Gate pass of {req.student_name} has been APPROVED"
-        )
-    else:
+        if student:
+            send_sms(
+                student.parents_phone,
+                f"Gate pass of {student.name} has been APPROVED"
+            )
+
+    elif action == "Rejected":
         req.status = "Rejected"
 
     db.session.commit()
     return redirect(url_for("hod_dashboard"))
-
-
 @app.route("/verify-qr/<token>")
 def verify_qr(token):
     req = GatePassRequest.query.filter_by(qr_token=token).first()
@@ -353,6 +357,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
