@@ -3,7 +3,7 @@ import random
 import io
 import base64
 from uuid import uuid4
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from flask import (
     Flask, render_template, redirect,
@@ -233,7 +233,7 @@ def student():
 
     # ---------- OTP VERIFY ----------
     if request.method == "POST" and session.get("otp_phase"):
-        if datetime.now() > session.get("otp_expiry"):
+        if datetime.now(timezone.utc) > session.get("otp_expiry"):
             flash("OTP expired", "danger")
             session.clear()
             return redirect(url_for("student"))
@@ -263,7 +263,7 @@ def student():
         otp = random.randint(100000, 999999)
         session["otp"] = otp
         session["otp_phase"] = True
-        session["otp_expiry"] = datetime.now() + timedelta(minutes=5)
+        session["otp_expiry"] = datetime.now(timezone.utc) + timedelta(minutes=5)
         session["pending"] = {
             "reason": request.form["reason"],
             "out_date": request.form["out_date"],
@@ -361,6 +361,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
