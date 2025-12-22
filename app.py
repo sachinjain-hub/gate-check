@@ -233,7 +233,7 @@ def student():
 
     # ---------- OTP VERIFY ----------
     if request.method == "POST" and session.get("otp_phase"):
-        if datetime.utcnow() > session.get("otp_expiry"):
+        if datetime.now() > session.get("otp_expiry"):
             flash("OTP expired", "danger")
             session.clear()
             return redirect(url_for("student"))
@@ -318,7 +318,7 @@ def update_request(id):
     if action == "Approved":
         req.status = "Approved"
         req.qr_token = uuid4().hex
-        req.qr_expires_at = datetime.utcnow() + timedelta(minutes=20)
+        req.qr_expires_at = datetime.now() + timedelta(minutes=20)
         req.qr_used = False
 
         send_sms(
@@ -342,7 +342,7 @@ def verify_qr(token):
     if req.qr_used:
         return render_template("qr_result.html", msg="QR already used")
 
-    if datetime.utcnow() > req.qr_expires_at:
+    if datetime.now() > req.qr_expires_at:
         return render_template("qr_result.html", msg="QR expired")
 
     req.qr_used = True
@@ -361,4 +361,5 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
