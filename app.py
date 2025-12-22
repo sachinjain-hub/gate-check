@@ -126,6 +126,38 @@ def send_sms(phone, message):
     except Exception as e:
         print("❌ Twilio Error:", e)
 
+@app.route("/verify_otp", methods=["GET", "POST"])
+def verify_otp():
+    if request.method == "POST":
+        entered_otp = request.form["otp"]
+
+        if datetime.utcnow() > session.get("otp_expiry"):
+            flash("OTP expired", "danger")
+            return redirect(url_for("student"))
+
+        if entered_otp != str(session.get("otp")):
+            flash("Invalid OTP", "danger")
+            return redirect(url_for("verify_otp"))
+
+        data = session.get("pending")
+
+        req = GatePassRequest(
+            student_name=session["student_name"],
+            reason=data["reason"],
+            out_date=data["out_date"],
+            out_time=data["out_time"]
+        )
+        db.session.add(req)
+        db.session.commit()
+
+        session.pop("otp")
+        session.pop("otp_expiry")
+        session.pop("pending")
+
+        flash("Gate pass submitted successfully", "success")
+        return redirect(url_for("student"))
+
+    return render_template("otpverify.html")
 
 def generate_qr_code(data):
     qr = qrcode.QRCode(box_size=8, border=3)
@@ -329,4 +361,5 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
