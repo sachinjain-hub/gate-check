@@ -3,20 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <title>HOD Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            padding: 30px;
+        }
+
+        h2 {
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        th {
+            background: #2c3e50;
+            color: white;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 4px;
+        }
+
+        .approve {
+            background: #2ecc71;
+            color: white;
+        }
+
+        .reject {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .logout {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-<h2>HOD Dashboard</h2>
 
-<p>Welcome, HOD!</p>
+<h2>HOD Dashboard</h2>
+<p>Welcome, HOD</p>
 
 <h3>All Gate Pass Requests</h3>
 
-{% if all_requests %}
-<table border="1" cellpadding="5" cellspacing="0">
+{% if requests %}
+<table>
+    <thead>
     <tr>
         <th>#</th>
-        <th>Request ID</th>
-        <th>Student ID</th>
         <th>Student Name</th>
         <th>Reason</th>
         <th>Out Date</th>
@@ -25,40 +79,48 @@
         <th>Requested At</th>
         <th>Action</th>
     </tr>
-    {% for r in all_requests %}
+    </thead>
+
+    <tbody>
+    {% for r in requests %}
     <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ r[0] }}</td> <!-- g.id -->
-        <td>{{ r[1] }}</td> <!-- student_id -->
-        <td>{{ r[2] }}</td> <!-- student_name -->
-        <td>{{ r[3] }}</td> <!-- reason -->
-        <td>{{ r[4] }}</td> <!-- out_date -->
-        <td>{{ r[5] }}</td> <!-- out_time -->
-        <td>{{ r[6] }}</td> <!-- status -->
-        <td>{{ r[7] }}</td> <!-- created_at -->
+        <td>{{ r.student_name }}</td>
+        <td>{{ r.reason }}</td>
+        <td>{{ r.out_date }}</td>
+        <td>{{ r.out_time }}</td>
+        <td>{{ r.status }}</td>
+        <td>{{ r.created_at }}</td>
         <td>
-            {% if r[6] == 'Pending' %}
+            {% if r.status == 'Pending' %}
             <form method="POST"
-                  action="{{ url_for('update_request_status', request_id=r[0]) }}"
+                  action="{{ url_for('update_request', id=r.id) }}"
                   style="display:inline;">
-                <button type="submit" name="action" value="Approved">Approve</button>
+                <button class="btn approve" name="action" value="Approved">
+                    Approve
+                </button>
             </form>
+
             <form method="POST"
-                  action="{{ url_for('update_request_status', request_id=r[0]) }}"
+                  action="{{ url_for('update_request', id=r.id) }}"
                   style="display:inline;">
-                <button type="submit" name="action" value="Rejected">Reject</button>
+                <button class="btn reject" name="action" value="Rejected">
+                    Reject
+                </button>
             </form>
             {% else %}
-                {{ r[6] }}
+                {{ r.status }}
             {% endif %}
         </td>
     </tr>
     {% endfor %}
+    </tbody>
 </table>
 {% else %}
 <p>No requests yet.</p>
 {% endif %}
 
-<p><a href="{{ url_for('logout') }}">Logout</a></p>
+<a href="{{ url_for('logout') }}" class="logout">Logout</a>
+
 </body>
 </html>
