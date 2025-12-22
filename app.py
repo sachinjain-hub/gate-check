@@ -131,7 +131,7 @@ def verify_otp():
     if request.method == "POST":
         entered_otp = request.form["otp"]
 
-        if datetime.utcnow() > session.get("otp_expiry"):
+        if datetime.now(timezone.utc) > session.get("otp_expiry"):
             flash("OTP expired", "danger")
             return redirect(url_for("student"))
 
@@ -228,39 +228,33 @@ def student():
     if "user_id" not in session:
         return redirect(url_for("login"))
 
-    user = db.session.get(User, session["user_id"])
+    user = User.query.get(session["user_id"])
 
     # ================= OTP VERIFY =================
     if request.method == "POST" and session.get("otp_phase"):
         if datetime.now(timezone.utc) > session.get("otp_expiry"):
-            flash("OTP expired. Please request again.", "danger")
-            session.pop("otp_phase", None)
-            session.pop("otp", None)
-            session.pop("pending", None)
-            session.pop("otp_expiry", None)
+            flash("OTP expired", "danger")
+            session.clear()
             return redirect(url_for("student"))
 
         if request.form.get("otp") != str(session.get("otp")):
             flash("Invalid OTP", "danger")
             return redirect(url_for("student"))
 
-        # Save gate pass
         req = GatePassRequest(
             student_id=user.id,
             student_name=user.name,
-            reason=session["pending"]["reason"],
-            out_date=session["pending"]["out_date"],
-            out_time=session["pending"]["out_time"]
+            **session["pending"]
         )
         db.session.add(req)
         db.session.commit()
 
-        session.pop("otp_phase")
-        session.pop("otp")
-        session.pop("pending")
-        session.pop("otp_expiry")
+        session.pop("otp_phase", None)
+        session.pop("otp", None)
+        session.pop("pending", None)
+        session.pop("otp_expiry", None)
 
-        flash("Gate pass submitted successfully!", "success")
+        flash("Gate pass submitted successfully", "success")
         return redirect(url_for("student"))
 
     # ================= SEND OTP =================
@@ -277,7 +271,7 @@ def student():
         }
 
         send_sms(user.parents_phone, f"OTP for gate pass is {otp}")
-        flash("OTP sent to parent's registered mobile number", "info")
+        flash("OTP sent to parent's mobile number", "info")
         return redirect(url_for("student"))
 
     # ================= FETCH REQUESTS =================
@@ -287,6 +281,7 @@ def student():
 
     now = datetime.now(timezone.utc)
     requests_list = []
+
     for r in gate_requests:
         qr_code_data = None
 
@@ -317,6 +312,7 @@ def student():
         requests_list=requests_list,
         otp_required=session.get("otp_phase", False)
     )
+
 @app.route("/hod")
 def hod_dashboard():
     if session.get("role") != "hod":
@@ -343,7 +339,7 @@ def update_request(id):
     if action == "Approved":
         req.status = "Approved"
         req.qr_token = uuid4().hex
-        req.qr_expires_at = datetime.utcnow() + timedelta(minutes=20)
+        req.qr_expires_at = datetime.now(timezone.utc) + timedelta(minutes=20)
         req.qr_used = False
 
         if student:
@@ -387,6 +383,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
