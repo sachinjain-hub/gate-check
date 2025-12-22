@@ -157,7 +157,7 @@ def verify_otp():
         flash("Gate pass submitted successfully", "success")
         return redirect(url_for("student"))
 
-    return render_template("otpverify.html")
+    return render_template("otp.verify.html")
 
 def generate_qr_code(data):
     qr = qrcode.QRCode(box_size=8, border=3)
@@ -361,3 +361,4 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
