@@ -368,11 +368,23 @@ def update_request(id):
 def verify_qr(token):
     req = GatePassRequest.query.filter_by(qr_token=token).first()
 
+    # ❌ Invalid QR
     if not req:
-        return render_template("qr_result.html", msg="Invalid QR")
+        return render_template(
+            "qr_result.html",
+            status="invalid",
+            msg="This QR code is not valid.",
+            gate_req=None
+        )
 
+    # ⚠️ Already used
     if req.qr_used:
-        return render_template("qr_result.html", msg="QR already used")
+        return render_template(
+            "qr_result.html",
+            status="used",
+            msg="This gate pass has already been used.",
+            gate_req=req
+        )
 
     now = datetime.now(timezone.utc)
 
@@ -380,14 +392,25 @@ def verify_qr(token):
     if expires_at and expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
 
+    # ⛔ Expired
     if not expires_at or now > expires_at:
-        return render_template("qr_result.html", msg="QR expired")
+        return render_template(
+            "qr_result.html",
+            status="expired",
+            msg="Gate pass validity time (20 minutes) has expired.",
+            gate_req=req
+        )
 
-    # ✅ Mark QR as used
+    # ✅ VALID → mark as used
     req.qr_used = True
     db.session.commit()
 
-    return render_template("qr_result.html", msg="Gate Pass Verified Successfully")
+    return render_template(
+        "qr_result.html",
+        status="valid",
+        msg="Gate pass is valid and verified successfully.",
+        gate_req=req
+    )
 
 
 @app.route("/logout")
@@ -401,6 +424,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
