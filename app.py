@@ -83,7 +83,10 @@ class GatePassRequest(db.Model):
     out_date = db.Column(db.String(20))
     out_time = db.Column(db.String(20))
     status = db.Column(db.String(20), default="Pending")
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(
+    db.DateTime(timezone=True),
+    default=lambda: datetime.now(timezone.utc)
+    )
 
     qr_token = db.Column(db.String(100), unique=True)
     qr_expires_at = db.Column(db.DateTime)
@@ -364,7 +367,7 @@ def verify_qr(token):
     if req.qr_used:
         return render_template("qr_result.html", msg="QR already used")
 
-    if datetime.now() > req.qr_expires_at:
+    if datetime.now(timezone.utc) > req.qr_expires_at:
         return render_template("qr_result.html", msg="QR expired")
 
     req.qr_used = True
@@ -383,6 +386,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
