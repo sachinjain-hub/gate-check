@@ -278,47 +278,47 @@ def student():
         return redirect(url_for("student"))
 
     # ================= FETCH REQUESTS =================
-gate_requests = GatePassRequest.query.filter_by(
-    student_id=user.id
-).order_by(GatePassRequest.created_at.desc()).all()
+    gate_requests = GatePassRequest.query.filter_by(
+        student_id=user.id
+    ).order_by(GatePassRequest.created_at.desc()).all()
 
-now = datetime.now(timezone.utc)
-requests_list = []
+    now = datetime.now(timezone.utc)
+    requests_list = []
 
-for r in gate_requests:
-    qr_code_data = None
+    for r in gate_requests:
+        qr_code_data = None
 
-    expires_at = r.qr_expires_at
-    if expires_at and expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
+        expires_at = r.qr_expires_at
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-    if (
-        r.status == "Approved"
-        and r.qr_token
-        and not r.qr_used
-        and expires_at
-        and expires_at > now
-    ):
-        verify_url = url_for("verify_qr", token=r.qr_token, _external=True)
-        qr_code_data = generate_qr_code(verify_url)
+        if (
+            r.status == "Approved"
+            and r.qr_token
+            and not r.qr_used
+            and expires_at
+            and expires_at > now
+        ):
+            verify_url = url_for("verify_qr", token=r.qr_token, _external=True)
+            qr_code_data = generate_qr_code(verify_url)
 
-    requests_list.append({
-        "id": r.id,
-        "reason": r.reason,
-        "out_date": r.out_date,
-        "out_time": r.out_time,
-        "status": r.status,
-        "created_at": r.created_at,
-        "qr_code_data": qr_code_data,
-        "qr_expires_at": expires_at
-    })
+        requests_list.append({
+            "id": r.id,
+            "reason": r.reason,
+            "out_date": r.out_date,
+            "out_time": r.out_time,
+            "status": r.status,
+            "created_at": r.created_at,
+            "qr_code_data": qr_code_data,
+            "qr_expires_at": expires_at
+        })
 
-return render_template(
-    "student.html",
-    student_name=user.name,
-    requests_list=requests_list,
-    otp_required=session.get("otp_phase", False)
-)
+    return render_template(
+        "student.html",
+        student_name=user.name,
+        requests_list=requests_list,
+        otp_required=session.get("otp_phase", False)
+    )
 
 
 @app.route("/hod")
@@ -393,6 +393,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
