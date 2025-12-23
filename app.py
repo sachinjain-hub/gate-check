@@ -374,12 +374,20 @@ def verify_qr(token):
     if req.qr_used:
         return render_template("qr_result.html", msg="QR already used")
 
-    if datetime.now(timezone.utc) > req.qr_expires_at:
+    now = datetime.now(timezone.utc)
+
+    expires_at = req.qr_expires_at
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    if not expires_at or now > expires_at:
         return render_template("qr_result.html", msg="QR expired")
 
+    # ✅ Mark QR as used
     req.qr_used = True
     db.session.commit()
-    return render_template("qr_result.html", msg="Gate Pass Verified")
+
+    return render_template("qr_result.html", msg="Gate Pass Verified Successfully")
 
 
 @app.route("/logout")
@@ -393,6 +401,7 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
 
 
 
